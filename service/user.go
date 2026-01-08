@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"log"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -86,11 +87,13 @@ func (us *UserService) InfoByAccessToken(token string) (*model.User, *model.User
 }
 
 // GenerateToken 生成token
+// Security: JWT key must be configured. MD5 fallback removed for security.
 func (us *UserService) GenerateToken(u *model.User) string {
-	if len(Jwt.Key) > 0 {
-		return Jwt.GenerateToken(u.Id)
+	if len(Jwt.Key) == 0 {
+		log.Println("[SECURITY ERROR] JWT key not configured. Please set jwt.key in config.yaml")
+		return ""
 	}
-	return utils.Md5(u.Username + time.Now().String())
+	return Jwt.GenerateToken(u.Id)
 }
 
 // Login 登录
