@@ -6,6 +6,28 @@ import * as sha256 from "fast-sha256";
 import * as globals from "./globals";
 import { decompress, mapKey, sleep } from "./common";
 
+const SHIFT_CHARS: Record<string, { vk: string }> = {
+  "!": { vk: "VK_1" },
+  "@": { vk: "VK_2" },
+  "#": { vk: "VK_3" },
+  $: { vk: "VK_4" },
+  "%": { vk: "VK_5" },
+  "^": { vk: "VK_6" },
+  "&": { vk: "VK_7" },
+  "*": { vk: "VK_8" },
+  "(": { vk: "VK_9" },
+  ")": { vk: "VK_0" },
+  _: { vk: "VK_MINUS" },
+  "+": { vk: "VK_PLUS" },
+  "{": { vk: "VK_LBRACKET" },
+  "}": { vk: "VK_RBRACKET" },
+  "|": { vk: "VK_BACKSLASH" },
+  ":": { vk: "VK_SEMICOLON" },
+  '"': { vk: "VK_QUOTE" },
+  "<": { vk: "VK_COMMA" },
+  "?": { vk: "VK_SLASH" },
+};
+
 const PORT = 21116;
 // only the first is used to init `HOST`
 const HOSTS = [
@@ -569,6 +591,18 @@ export default class Connection {
     shift: Boolean,
     command: Boolean
   ) {
+    const punct = SHIFT_CHARS[name];
+    if (punct) {
+      name = punct.vk;
+      shift = true;
+      if (press && down !== true) {
+        this._sendShiftedPhysical(name);
+        return;
+      }
+    } else if (name.length === 1 && name >= "A" && name <= "Z") {
+      name = "VK_" + name;
+      shift = true;
+    }
     const key_event = mapKey(name, globals.isDesktop());
     if (!key_event) return;
     if (alt && (name == "VK_MENU" || name == "RAlt")) {
@@ -601,7 +635,7 @@ export default class Connection {
   }
 
   inputString(seq: string) {
-    const key_event = message.KeyEvent.fromPartial({ seq });
+    const key_event = message.KeyEvent.fromPartial({ press: true, seq });
     this._ws?.sendMessage({ key_event });
   }
 
@@ -609,6 +643,22 @@ export default class Connection {
     const switch_display = message.SwitchDisplay.fromPartial({ display });
     const misc = message.Misc.fromPartial({ switch_display });
     this._ws?.sendMessage({ misc });
+  }
+
+  _emitKey(name: string, down: boolean, press: boolean, shift: Boolean = false) {
+    const key_event = mapKey(name, true);
+    if (!key_event) return;
+    key_event.down = down;
+    key_event.press = press;
+    key_event.modifiers = this.getMod(false, false, shift && name !== "VK_SHIFT", false);
+    this._ws?.sendMessage({ key_event });
+  }
+
+  _sendShiftedPhysical(vk: string) {
+    this._emitKey("VK_SHIFT", true, false, false);
+    this._emitKey(vk, true, false, true);
+    this._emitKey(vk, false, true, true);
+    this._emitKey("VK_SHIFT", false, true, false);
   }
 
   async inputOsPassword(seq: string) {
@@ -619,8 +669,21 @@ export default class Connection {
     this.inputMouse(1 | (1 << 3));
     this.inputMouse(2 | (1 << 3));
     await sleep(1200);
-    const key_event = message.KeyEvent.fromPartial({ press: true, seq });
-    this._ws?.sendMessage({ key_event });
+    for (const ch of seq) {
+      const punct = SHIFT_CHARS[ch];
+      if (punct) {
+        this._sendShiftedPhysical(punct.vk);
+      } else if (ch >= "A" && ch <= "Z") {
+        this._sendShiftedPhysical("VK_" + ch);
+      } else if (ch === " ") {
+        this.inputKey("VK_SPACE", true, true, false, false, false, false);
+      } else if (ch === "\n") {
+        this.inputKey("VK_RETURN", true, true, false, false, false, false);
+      } else {
+        this.inputKey(ch, true, true, false, false, false, false);
+      }
+      await sleep(40);
+    }
   }
 
   lockScreen() {
@@ -767,8 +830,13 @@ function getrUriFromRs(
   isRelay: Boolean = false,
   roffset: number = 0
 ): string {
-    //v2
-  //if (isHttps()) return "wss://" + domain(uri) + "/ws/" + (isRelay ? "relay" : "id");
+  const wsHost = (window as any).ws_host as string | undefined;
+  if (wsHost) {
+    return String(wsHost).replace(/\/$/, "") + "/ws/" + (isRelay ? "relay" : "id");
+  }
+  if (location.protocol === "https:") {
+    return "wss://" + location.host + "/ws/" + (isRelay ? "relay" : "id");
+  }
   if (uri.indexOf(":") > 0) {
     const tmp = uri.split(":");
     const port = parseInt(tmp[1]);

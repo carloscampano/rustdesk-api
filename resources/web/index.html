@@ -30,75 +30,62 @@
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
 
-    <title>RustDesk</title>
+    <title>RustDesk Admin · Cliente web</title>
     <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="theme-admin.css">
     <script src="/webclient-config/index.js"></script>
+    <script>
+      (function () {
+        var host = 'rustdesk.campano.cl:21116';
+        var cur = localStorage.getItem('custom-rendezvous-server') || '';
+        if (!cur || /127\.0\.0\.1|localhost/.test(cur)) {
+          localStorage.setItem('custom-rendezvous-server', host);
+          localStorage.setItem('wc-custom-rendezvous-server', host);
+        }
+        if (!localStorage.getItem('key')) {
+          localStorage.setItem('key', 'Pj7hMnB0tm5g7qnTz689wIqkXG0vMzF+S1+rqQ4w5Tk=');
+        }
+      })();
+    </script>
     <script src="ogvjs-1.8.6/ogv.js"></script>
     <script type="module" crossorigin src="js/dist/index.js"></script>
+    <script src="js/kbd-fix.js"></script>
     <script>
     </script>
     <link rel="modulepreload" href="js/dist/vendor.js">
     <script src="yuv-canvas-1.2.6.js"></script>
 
-    <style>
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 0;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            -ms-transform: translate(-50%, -50%);
-            transform: translate(-50%, -50%);
-        }
-
-        .loader {
-            border: 16px solid #f3f3f3;
-            border-radius: 50%;
-            border: 15px solid;
-            border-top: 16px solid #024eff;
-            border-right: 16px solid white;
-            border-bottom: 16px solid #024eff;
-            border-left: 16px solid white;
-            width: 120px;
-            height: 120px;
-            -webkit-animation: spin 2s linear infinite;
-            animation: spin 2s linear infinite;
-        }
-
-        @-webkit-keyframes spin {
-            0% {
-                -webkit-transform: rotate(0deg);
-            }
-
-            100% {
-                -webkit-transform: rotate(360deg);
-            }
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-    </style>
-
 </head>
 
 <body>
+<header class="rd-wc-header">
+  <a class="rd-wc-brand" href="/_admin/#/home">
+    <span class="rd-wc-mark">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="12" rx="2.5"></rect>
+        <path d="M8 20h8"></path>
+        <path d="M12 16v4"></path>
+      </svg>
+    </span>
+    <span>
+      <span class="name">RustDesk Admin</span>
+      <span class="sub">Cliente web</span>
+    </span>
+  </a>
+  <span class="rd-wc-actions">
+    <a class="rd-wc-back" href="/_admin/#/home">Volver al panel</a>
+    <button type="button" class="rd-wc-logout" id="rd-wc-logout">Cerrar sesión</button>
+  </span>
+</header>
 <div class="loading">
     <div class="loader"></div>
+    <div>Cargando cliente web…</div>
 </div>
 <!-- This script installs service_worker.js to provide PWA functionality to
      application. For more information, see:
      https://developers.google.com/web/fundamentals/primers/service-workers -->
 <script>
-    var serviceWorkerVersion = '1200232272';
+    var serviceWorkerVersion = '1200232283';
     var scriptLoaded = false;
 
     function loadMainDartJs() {

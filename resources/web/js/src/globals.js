@@ -264,6 +264,9 @@ window.setByName = (name, value) => {
             if (value.name === 'access_token' && value.value) {
                 getServerConf(value.value);
             }
+            if (value.name === 'access_token' && !value.value) {
+                window.rdPortalLogout && window.rdPortalLogout();
+            }
             break;
         case 'peer_option':
             value = JSON.parse(value);

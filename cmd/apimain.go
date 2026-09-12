@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const DatabaseVersion = 265
+const DatabaseVersion = 266
 
 // @title 管理系统API
 // @version 1.0
@@ -282,6 +282,9 @@ func DatabaseAutoUpdate() {
 		}
 		if v.Version < 246 {
 			db.Exec("update oauths set issuer = 'https://accounts.google.com' where op = 'google' and issuer is null")
+		}
+		if v.Version < 266 {
+			db.Exec("UPDATE audit_conns SET public_ip = COALESCE((SELECT last_online_ip FROM peers WHERE peers.id = audit_conns.from_peer AND last_online_ip IS NOT NULL AND last_online_ip != ''), '') WHERE (public_ip IS NULL OR public_ip = '') AND from_peer != ''")
 		}
 	}
 

@@ -2,7 +2,9 @@ package service
 
 import (
 	"github.com/lejianwen/rustdesk-api/v2/model"
+	"github.com/lejianwen/rustdesk-api/v2/utils"
 	"gorm.io/gorm"
+	"strings"
 )
 
 type AuditService struct {
@@ -19,11 +21,65 @@ func (as *AuditService) AuditConnList(page, pageSize uint, where func(tx *gorm.D
 	tx.Count(&res.Total)
 	tx.Scopes(Paginate(page, pageSize))
 	tx.Find(&res.AuditConns)
+	as.EnrichPublicIPs(res.AuditConns)
 	return
+}
+
+func publicIPOfPeer(peerId string) string {
+	peerId = strings.TrimSpace(peerId)
+	if peerId == "" {
+		return ""
+	}
+	p := &model.Peer{}
+	DB.Select("last_online_ip").Where("id = ?", peerId).First(p)
+	ip := strings.TrimSpace(p.LastOnlineIp)
+	if !utils.IsPublicIP(ip) {
+		return ""
+	}
+	return ip
+}
+
+func (as *AuditService) AttachPublicIP(u *model.AuditConn) {
+	if u == nil || u.PublicIp != "" {
+		return
+	}
+	u.PublicIp = publicIPOfPeer(u.FromPeer)
+}
+
+func (as *AuditService) EnrichPublicIPs(rows []*model.AuditConn) {
+	ids := make([]string, 0)
+	seen := map[string]struct{}{}
+	for _, row := range rows {
+		if row.PublicIp != "" || row.FromPeer == "" {
+			continue
+		}
+		if _, ok := seen[row.FromPeer]; ok {
+			continue
+		}
+		seen[row.FromPeer] = struct{}{}
+		ids = append(ids, row.FromPeer)
+	}
+	if len(ids) == 0 {
+		return
+	}
+	var peers []model.Peer
+	DB.Select("id, last_online_ip").Where("id in ?", ids).Find(&peers)
+	byID := map[string]string{}
+	for _, p := range peers {
+		if utils.IsPublicIP(p.LastOnlineIp) {
+			byID[p.Id] = p.LastOnlineIp
+		}
+	}
+	for _, row := range rows {
+		if row.PublicIp == "" {
+			row.PublicIp = byID[row.FromPeer]
+		}
+	}
 }
 
 // Create 创建
 func (as *AuditService) CreateAuditConn(u *model.AuditConn) error {
+	as.AttachPublicIP(u)
 	res := DB.Create(u).Error
 	return res
 }

@@ -52,6 +52,11 @@ func (a *Audit) AuditConn(c *gin.Context) {
 				SessionId: ac.SessionId,
 				Type:      ac.Type,
 			}
+			if ex.PublicIp == "" && ac.FromPeer != "" {
+				tmp := &model.AuditConn{FromPeer: ac.FromPeer}
+				service.AllService.AuditService.AttachPublicIP(tmp)
+				up.PublicIp = tmp.PublicIp
+			}
 			service.AllService.AuditService.UpdateAuditConn(up)
 		}
 	}
