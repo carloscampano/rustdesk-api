@@ -35,6 +35,11 @@ html, body {
   background: var(--rd-bg-sidebar);
   border-bottom: 1px solid var(--rd-line);
   box-sizing: border-box;
+  pointer-events: none;
+}
+
+.rd-wc-header a,
+.rd-wc-header button {
   pointer-events: auto;
 }
 

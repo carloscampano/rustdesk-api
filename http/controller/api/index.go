@@ -6,6 +6,7 @@ import (
 	"github.com/lejianwen/rustdesk-api/v2/http/response"
 	"github.com/lejianwen/rustdesk-api/v2/model"
 	"github.com/lejianwen/rustdesk-api/v2/service"
+	"github.com/lejianwen/rustdesk-api/v2/utils"
 	"net/http"
 	"time"
 )
@@ -45,12 +46,12 @@ func (i *Index) Heartbeat(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{})
 		return
 	}
-	if info.Uuid == "" {
+	if !utils.ValidPeerId(info.Id) || !utils.ValidPeerUuid(info.Uuid) {
 		c.JSON(http.StatusOK, gin.H{})
 		return
 	}
 	peer := service.AllService.PeerService.FindById(info.Id)
-	if peer == nil || peer.RowId == 0 {
+	if peer == nil || peer.RowId == 0 || !utils.PeerUuidMatch(peer.Uuid, info.Uuid) {
 		c.JSON(http.StatusOK, gin.H{})
 		return
 	}

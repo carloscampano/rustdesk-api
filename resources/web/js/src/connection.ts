@@ -172,6 +172,7 @@ export default class Connection {
     const request_relay = rendezvous.RequestRelay.fromPartial({
       licence_key: localStorage.getItem("key") || undefined,
       uuid,
+      token: localStorage.getItem("access_token") || undefined,
     });
     ws.sendRendezvous({ request_relay });
     const secure = (await this.secure(pk)) || false;
@@ -596,7 +597,7 @@ export default class Connection {
       name = punct.vk;
       shift = true;
       if (press && down !== true) {
-        this._sendShiftedPhysical(name);
+        void this._sendShiftedPhysical(name);
         return;
       }
     } else if (name.length === 1 && name >= "A" && name <= "Z") {
@@ -654,35 +655,47 @@ export default class Connection {
     this._ws?.sendMessage({ key_event });
   }
 
-  _sendShiftedPhysical(vk: string) {
+  async _sendShiftedPhysical(vk: string) {
     this._emitKey("VK_SHIFT", true, false, false);
+    await sleep(40);
     this._emitKey(vk, true, false, true);
-    this._emitKey(vk, false, true, true);
-    this._emitKey("VK_SHIFT", false, true, false);
+    await sleep(25);
+    this._emitKey(vk, false, false, true);
+    await sleep(25);
+    this._emitKey("VK_SHIFT", false, false, false);
+    await sleep(25);
   }
 
-  async inputOsPassword(seq: string) {
-    this.inputMouse();
-    await sleep(50);
-    this.inputMouse(0, 3, 3);
-    await sleep(50);
-    this.inputMouse(1 | (1 << 3));
-    this.inputMouse(2 | (1 << 3));
-    await sleep(1200);
+  _sendUnicodeChar(ch: string) {
+    const key_event = message.KeyEvent.fromPartial({
+      press: true,
+      unicode: ch.charCodeAt(0),
+      seq: ch,
+    });
+    this._ws?.sendMessage({ key_event });
+  }
+
+  async inputOsPassword(seq: string, clickFirst: boolean = false) {
+    if (clickFirst) {
+      this.inputMouse();
+      await sleep(50);
+      this.inputMouse(0, 3, 3);
+      await sleep(50);
+      this.inputMouse(1 | (1 << 3));
+      this.inputMouse(2 | (1 << 3));
+      await sleep(800);
+    }
     for (const ch of seq) {
-      const punct = SHIFT_CHARS[ch];
-      if (punct) {
-        this._sendShiftedPhysical(punct.vk);
-      } else if (ch >= "A" && ch <= "Z") {
-        this._sendShiftedPhysical("VK_" + ch);
-      } else if (ch === " ") {
-        this.inputKey("VK_SPACE", true, true, false, false, false, false);
-      } else if (ch === "\n") {
+      if (ch === "\n") {
         this.inputKey("VK_RETURN", true, true, false, false, false, false);
+      } else if ((ch >= "a" && ch <= "z") || (ch >= "0" && ch <= "9")) {
+        this.inputKey(ch, false, true, false, false, false, false);
+      } else if (ch === " ") {
+        this.inputKey("VK_SPACE", false, true, false, false, false, false);
       } else {
-        this.inputKey(ch, true, true, false, false, false, false);
+        this._sendUnicodeChar(ch);
       }
-      await sleep(40);
+      await sleep(50);
     }
   }
 

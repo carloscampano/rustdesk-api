@@ -209,6 +209,22 @@ func (us *UserService) Logout(u *model.User, token string) error {
 	return nil
 }
 
+// LogoutByToken revokes a session even if the token is already expired.
+func (us *UserService) LogoutByToken(token string) error {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return nil
+	}
+	ut := &model.UserToken{}
+	DB.Where("token = ?", token).First(ut)
+	if ut.Id == 0 {
+		return nil
+	}
+	u := &model.User{}
+	u.Id = ut.UserId
+	return us.Logout(u, token)
+}
+
 // Delete 删除用户和oauth信息
 func (us *UserService) Delete(u *model.User) error {
 	userCount := us.getAdminUserCount()

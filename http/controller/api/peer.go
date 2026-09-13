@@ -7,6 +7,7 @@ import (
 	requstform "github.com/lejianwen/rustdesk-api/v2/http/request/api"
 	"github.com/lejianwen/rustdesk-api/v2/http/response"
 	"github.com/lejianwen/rustdesk-api/v2/service"
+	"github.com/lejianwen/rustdesk-api/v2/utils"
 	"net/http"
 )
 
@@ -30,9 +31,17 @@ func (p *Peer) SysInfo(c *gin.Context) {
 		response.Error(c, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
+	if !utils.ValidPeerId(f.Id) || !utils.ValidPeerUuid(f.Uuid) {
+		response.Error(c, response.TranslateMsg(c, "ParamsError"))
+		return
+	}
 	fpe := f.ToPeer()
 	pe := service.AllService.PeerService.FindById(f.Id)
 	if pe.RowId == 0 {
+		if other := service.AllService.PeerService.FindByUuid(f.Uuid); other.RowId > 0 {
+			c.String(http.StatusOK, "SYSINFO_UPDATED")
+			return
+		}
 		pe = f.ToPeer()
 		pe.UserId = service.AllService.UserService.FindLatestUserIdFromLoginLogByUuid(pe.Uuid, pe.Id)
 		err = service.AllService.PeerService.Create(pe)
@@ -41,11 +50,16 @@ func (p *Peer) SysInfo(c *gin.Context) {
 			return
 		}
 	} else {
+		if !utils.PeerUuidMatch(pe.Uuid, f.Uuid) {
+			c.String(http.StatusOK, "SYSINFO_UPDATED")
+			return
+		}
 		if pe.UserId == 0 {
 			pe.UserId = service.AllService.UserService.FindLatestUserIdFromLoginLogByUuid(pe.Uuid, pe.Id)
 		}
 		fpe.RowId = pe.RowId
 		fpe.UserId = pe.UserId
+		fpe.Uuid = pe.Uuid
 		err = service.AllService.PeerService.Update(fpe)
 		if err != nil {
 			response.Error(c, response.TranslateMsg(c, "OperationFailed")+err.Error())

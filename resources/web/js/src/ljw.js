@@ -51,8 +51,10 @@ if (share_token) {
 
 let fetching = false
 export function getServerConf(token){
-    console.log('getServerConf', token)
     if(fetching){
+        return
+    }
+    if (window.curConn) {
         return
     }
     fetching = true
@@ -88,9 +90,6 @@ export function getServerConf(token){
                     }
                 })
                 localStorage.setItem('peers', JSON.stringify(oldPeers))
-                if (needUpdate) {
-                    window.location.reload()
-                }
             }
         }
     }).catch(_ => {

@@ -119,6 +119,10 @@ func (r *Rustdesk) SendCmd(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
+	if !service.AllowedServerCmd(rc.Cmd, rc.Target) {
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
+		return
+	}
 
 	port := 0
 	switch rc.Target {

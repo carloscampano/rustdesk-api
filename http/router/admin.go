@@ -35,6 +35,7 @@ func Init(g *gin.Engine) {
 	OauthBind(adg)
 	LoginLogBind(adg)
 	AuditBind(adg)
+	GeoBind(adg)
 	AddressBookCollectionBind(adg)
 	AddressBookCollectionRuleBind(adg)
 	UserTokenBind(adg)
@@ -56,7 +57,7 @@ func Init(g *gin.Engine) {
 
 func RustdeskCmdBind(adg *gin.RouterGroup) {
 	cont := &admin.Rustdesk{}
-	rg := adg.Group("/rustdesk")
+	rg := adg.Group("/rustdesk").Use(middleware.AdminPrivilege())
 	rg.POST("/sendCmd", cont.SendCmd)
 	rg.GET("/cmdList", cont.CmdList)
 	rg.POST("/cmdDelete", cont.CmdDelete)
@@ -191,6 +192,10 @@ func LoginLogBind(rg *gin.RouterGroup) {
 	aR.POST("/delete", cont.Delete)
 	aR.POST("/batchDelete", cont.BatchDelete)
 }
+func GeoBind(rg *gin.RouterGroup) {
+	rg.POST("/geo/lookup", (&admin.Geo{}).Lookup)
+}
+
 func AuditBind(rg *gin.RouterGroup) {
 	cont := &admin.Audit{}
 	aR := rg.Group("/audit_conn").Use(middleware.AdminPrivilege())

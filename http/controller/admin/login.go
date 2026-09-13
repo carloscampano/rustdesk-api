@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lejianwen/rustdesk-api/v2/global"
 	"github.com/lejianwen/rustdesk-api/v2/http/controller/api"
+	"github.com/lejianwen/rustdesk-api/v2/http/middleware"
 	"github.com/lejianwen/rustdesk-api/v2/http/request/admin"
 	apiReq "github.com/lejianwen/rustdesk-api/v2/http/request/api"
 	"github.com/lejianwen/rustdesk-api/v2/http/response"
@@ -139,11 +140,11 @@ func (ct *Login) Captcha(c *gin.Context) {
 // @Failure 500 {object} response.Response
 // @Router /admin/logout [post]
 func (ct *Login) Logout(c *gin.Context) {
-	u := service.AllService.UserService.CurUser(c)
-	token, ok := c.Get("token")
-	if ok {
-		service.AllService.UserService.Logout(u, token.(string))
+	token := middleware.RequestToken(c)
+	if token != "" {
+		_ = service.AllService.UserService.LogoutByToken(token)
 	}
+	middleware.ClearPortalCookie(c)
 	response.Success(c, nil)
 }
 
@@ -238,5 +239,6 @@ func responseLoginSuccess(c *gin.Context, u *model.User, token string) {
 	lp.FromUser(u)
 	lp.Token = token
 	lp.RouteNames = service.AllService.UserService.RouteNames(u)
+	middleware.SetPortalCookie(c, token)
 	response.Success(c, lp)
 }

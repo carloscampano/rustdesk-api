@@ -1,10 +1,14 @@
 package service
 
 import (
+	"errors"
 	"fmt"
-	"github.com/lejianwen/rustdesk-api/v2/model"
 	"net"
+	"strings"
 	"time"
+	"unicode"
+
+	"github.com/lejianwen/rustdesk-api/v2/model"
 )
 
 type ServerCmdService struct{}
@@ -39,9 +43,44 @@ func (is *ServerCmdService) Create(u *model.ServerCmd) error {
 	return res
 }
 
+func AllowedServerCmd(cmd, target string) bool {
+	cmd = strings.TrimSpace(cmd)
+	if cmd == "" {
+		return false
+	}
+	for _, r := range cmd {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' && r != '_' {
+			return false
+		}
+	}
+	list := model.SysIdServerCmds
+	if target == model.ServerCmdTargetRelayServer {
+		list = model.SysRelayServerCmds
+	}
+	for _, c := range list {
+		if c.Cmd == cmd || c.Alias == cmd {
+			return true
+		}
+	}
+	return false
+}
+
+func sanitizeCmdArg(arg string) (string, error) {
+	if strings.ContainsAny(arg, "\n\r\x00") {
+		return "", errors.New("invalid option")
+	}
+	if len(arg) > 512 {
+		return "", errors.New("option too long")
+	}
+	return arg, nil
+}
+
 // SendCmd 发送命令
 func (is *ServerCmdService) SendCmd(port int, cmd string, arg string) (string, error) {
-	//组装命令
+	arg, err := sanitizeCmdArg(arg)
+	if err != nil {
+		return "", err
+	}
 	cmd = cmd + " " + arg
 	res, err := is.SendSocketCmd("v6", port, cmd)
 	if err == nil {

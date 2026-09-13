@@ -26,6 +26,7 @@ var SysIdServerCmds = []*ServerCmd{
 	{Cmd: "ip-blocker", Alias: "ib", Option: "[<ip>|<number>] [-]", Explain: "block or unblock ip or show blocked ip", Target: ServerCmdTargetIdServer},
 	{Cmd: "ip-changes", Alias: "ic", Option: "[<id>|<number>] [-]", Explain: "ip-changes(ic) [<id>|<number>] [-]", Target: ServerCmdTargetIdServer},
 	{Cmd: "always-use-relay", Alias: "aur", Option: "[y|n]", Explain: "always use relay", Target: ServerCmdTargetIdServer},
+	{Cmd: "must-login", Alias: "ml", Option: "[y|n]", Explain: "must login", Target: ServerCmdTargetIdServer},
 	{Cmd: "test-geo", Alias: "tg", Option: "<ip1> <ip2>", Explain: "test geo", Target: ServerCmdTargetIdServer},
 }
 
