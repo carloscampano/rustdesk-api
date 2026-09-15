@@ -35,7 +35,7 @@ func (l *Login) Login(c *gin.Context) {
 
 	loginLimiter := global.LoginLimiter
 	clientIp := c.ClientIP()
-	banned, needCaptcha := loginLimiter.CheckSecurityStatus(clientIp)
+	banned, _ := loginLimiter.CheckSecurityStatus(clientIp)
 	if banned {
 		response.Error(c, response.TranslateMsg(c, "Banned"))
 		return
@@ -56,15 +56,6 @@ func (l *Login) Login(c *gin.Context) {
 		global.Logger.Warn(fmt.Sprintf("Login Fail: %s %s %s", "ParamsError", c.RemoteIP(), c.ClientIP()))
 		response.Error(c, errList[0])
 		return
-	}
-
-	if needCaptcha {
-		if f.CaptchaId == "" || f.Captcha == "" || !loginLimiter.VerifyCaptcha(f.CaptchaId, f.Captcha) {
-			loginLimiter.RecordFailedAttempt(clientIp)
-			global.Logger.Warn(fmt.Sprintf("Login Fail: %s %s %s", "CaptchaError", c.RemoteIP(), clientIp))
-			response.Error(c, response.TranslateMsg(c, "CaptchaError"))
-			return
-		}
 	}
 
 	u := service.AllService.UserService.InfoByUsernamePassword(f.Username, f.Password)

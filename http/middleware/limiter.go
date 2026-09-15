@@ -13,7 +13,16 @@ func Limiter() gin.HandlerFunc {
 		clientIp := c.ClientIP()
 		banned, _ := loginLimiter.CheckSecurityStatus(clientIp)
 		if banned {
-			response.Fail(c, http.StatusLocked, response.TranslateMsg(c, "Banned"))
+			msg := response.TranslateMsg(c, "Banned")
+			// Native RustDesk clients only look at HTTP status + "error".
+			// HTTP 200 + {code:423} is parsed as a login payload and shown as
+			// "Failed, bad response from server".
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    http.StatusForbidden,
+				"message": msg,
+				"error":   msg,
+				"data":    nil,
+			})
 			c.Abort()
 			return
 		}

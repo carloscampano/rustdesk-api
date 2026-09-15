@@ -138,7 +138,7 @@ func (g *Group) Peers(c *gin.Context) {
 func (g *Group) Device(c *gin.Context) {
 	u := service.AllService.UserService.CurUser(c)
 	if !service.AllService.UserService.IsAdmin(u) {
-		response.Error(c, "Permission denied")
+		c.JSON(http.StatusOK, response.DataResponse{Total: 0, Data: []interface{}{}})
 		return
 	}
 	allGroup := service.AllService.GroupService.DeviceGroupList(1, 999, nil)
